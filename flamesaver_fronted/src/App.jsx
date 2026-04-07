@@ -317,67 +317,26 @@ export default function App() {
     setError(null)
     
     try {
-      const systemPrompt = `You are an expert nutritionist and fuel efficiency advisor during LPG shortages. 
-      
-Food database: ${FOOD_DATABASE_CSV}
-
-You MUST:
-1. Filter recommendations by diet preference: "${dietPreference}"
-2. Adjust portions for ${familyMembers} people
-3. Prioritize lower LPG-unit foods when cylinder is "${cylinderLevel}"
-4. ${weeklyPlan ? 'Generate a detailed 7-day meal plan' : 'Do NOT generate a weekly plan'}
-5. Return ONLY valid JSON with NO markdown, NO preamble, NO explanation
-6. Use this exact JSON format:
-{
-  "recommended": [{"name": "food", "cook_time": "X min", "lpg_units": 0.3, "tip": "optional"}],
-  "avoid": [{"name": "food", "reason": "explanation"}],
-  "summary": "2-3 sentence summary",
-  "weekly_plan": ${weeklyPlan ? '{"monday": {"breakfast": "...", "lunch": "...", "dinner": "..."}, ...}' : 'null'}
-}`
-
-      const userMessage = `I have these ingredients available: ${ingredients}
-My family size: ${familyMembers}
-Days until new cylinder: ${daysUntilCylinder}
-Diet preference: ${dietPreference}
-Current cylinder level: ${cylinderLevel}
-
-Please analyze and give me fuel-efficient cooking recommendations.`
-
-      const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-      if (!apiKey) {
-        setError('API key not configured. Set VITE_ANTHROPIC_API_KEY in .env.local')
-        setLoading(false)
-        return
-      }
-
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('http://localhost:8000/recommend', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: userMessage }],
+          cylinder_level: cylinderLevel,
+          diet_preference: dietPreference,
+          family_members: familyMembers,
+          days_until_cylinder: daysUntilCylinder,
+          ingredients: ingredients,
+          weekly_plan: weeklyPlan,
         }),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error?.message || 'API request failed')
+        throw new Error(errorData.detail || 'Backend request failed')
       }
 
       const data = await response.json()
-      const content = data.content[0].text
-
-      try {
-        const parsed = JSON.parse(content)
-        setResults(parsed)
-      } catch (parseErr) {
-        setError('AI returned an unexpected response. Please try again.')
-      }
+      setResults(data)
     } catch (err) {
       setError(err.message || 'Failed to get recommendations. Please try again.')
     } finally {
@@ -387,9 +346,9 @@ Please analyze and give me fuel-efficient cooking recommendations.`
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#0a0a0a', color: '#f5f5f5' }}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="px-4 py-6 sm:px-4 sm:py-8 md:max-w-2xl md:mx-auto md:px-4 md:py-8 lg:max-w-6xl lg:mx-auto lg:px-6 lg:py-10">
         {/* Header */}
-        <div className="mb-8 lg:mb-12">
+        <div className="mb-6 sm:mb-8 md:mb-8 lg:mb-12">
           <div className="flex items-center gap-3 mb-2">
             <div
               className="w-8 h-8 rounded-lg bg-[#e85d04] flex items-center justify-center"
@@ -406,9 +365,9 @@ Please analyze and give me fuel-efficient cooking recommendations.`
         </div>
 
         {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-8 items-start">
           {/* Form Column */}
-          <div className="lg:sticky lg:top-8 lg:self-start">
+          <div className="lg:sticky lg:top-8 lg:self-start min-w-0">
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Input Card */}
               <div className="bg-[#111111] border border-[#2a2a2a] rounded-2xl p-6 space-y-6">
@@ -503,7 +462,7 @@ Please analyze and give me fuel-efficient cooking recommendations.`
           </div>
 
           {/* Results Column */}
-          <div className="min-h-96">
+          <div className="min-h-96 min-w-0">
             <ResultsPanel
               results={results}
               loading={loading}
