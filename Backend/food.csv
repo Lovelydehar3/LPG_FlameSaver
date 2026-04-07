@@ -1,0 +1,6 @@
+food,cook_time_min_per_100g,lpg_units,category,avoid_during_shortage
+Dal (lentils),20,0.3,protein,No
+Pasta,12,0.2,carbs,No
+Biryani,45,0.8,rice,Yes
+Bread (store),0,0,carbs,Preferred
+Eggs,5,0.1,protein,No
